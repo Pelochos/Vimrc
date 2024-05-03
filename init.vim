@@ -141,12 +141,71 @@ set tabstop=4
 
 set shiftwidth=4
 
+" destacas todo los encuentros en el archivo
+set hlsearch
+
+" destacas lo que sigue mientras estás teclando
+set incsearch
+
 let mapleader = "-"
 
 let localmapleader = "\\"
 " }}}
 
 " mapeados de la tecla --- {{{
+nnoremap <leader>q :call <SID>QuickfixToggle()<cr> 
+
+let g:quickfix_is_open = 0
+
+function! s:QuickfixToggle()
+if g:quickfix_is_open
+cclose
+let g:quickfix_is_open = 0
+execute g:quickfix_return_to_window . "wincmd w"
+else
+let g:quickfix_return_to_window = winnr()
+copen
+let g:quickfix_is_open = 1
+endif
+endfunction
+
+nnoremap <leader>f :call <SID>FoldColumnToggle()<cr>
+
+function! s:FoldColumnToggle()
+if &foldcolumn
+setlocal foldcolumn=0
+else
+setlocal foldcolumn=4
+endif
+endfunction
+
+nnoremap <leader>= :setlocal number!<cr>
+
+nnoremap <leader>N :cnext<cr>
+
+nnoremap <leader>P :cprevious<cr>
+
+" haz el comando 'nohls'
+nnoremap <leader>X :nohlsearch<cr>
+
+nnoremap <leader>la :<c-u>execute "leftabove vsplit " . bufname("#")<cr>
+
+nnoremap <leader>rb :<c-u>execute "rightbelow vsplit " . bufname("#")<cr>
+
+nnoremap <leader>; :<c-u>execute "normal! mqA;\e`q"<cr>
+
+" resaltar 'trailing whitespace'
+nnoremap <leader>W :match Error /\v\s\s*$/<cr>
+
+" cancelar lo que has resaltado
+nnoremap <leader>E :match none<cr>
+
+" haz 'source %'
+nnoremap <leader>SR :source %<cr>
+
+" búsqueda con \v
+nnoremap <leader>\ /\v
+
 nnoremap <localleader>g :w<cr>
 
 nnoremap <localleader>q :q<cr>
@@ -232,4 +291,109 @@ onoremap vl{ :<c-u>normal! f{vf}<cr>
 onoremap vn} :<c-u>normal! F}vF{<cr>
 " }}}
 
-echo "WELCOME!"
+" funciones --- {{{
+"poner la lista en orden alfabético o númerico (p. ej. :echo Sorted([2, 3, 1, 4]) = [1, 2, 3,4])
+function! Sorted(l)
+	let new_list = deepcopy(a:l)
+	call sort(new_list)
+	return new_list
+endfunction
+
+"poner la lista en reverso (p. ej. :echo Reversed([2, 3, 1, 4]) = [4, 1, 3, 2])
+function! Reversed(l)
+	let new_list = deepcopy(a:l)
+	call reverse(new_list)
+	return new_list
+endfunction
+
+"agregar un valor al final de la lista (p. ej. :echo Append([2, 3, 1, 4,], 'Hola') = [2, 3, 1, 4, 'Hola'])
+function! Append(l, val)
+	let new_list = deepcopy(a:l)
+	call add(new_list, a:val)
+	return new_list
+endfunction
+
+"sustituir una palabra por otra (p. ej. :echo Assoc([2, 3, 1, 4,], 2, 'Hola') = [2, 3, 'Hola', 4])
+function! Assoc(l, i, val)
+	if type(a:l) == v:t_dict
+		let new_dict = deepcopy(a:l)
+		let new_dict[a:i] = a:val
+		return new_dict
+	else
+		let new_list = deepcopy(a:l)
+		let new_list[a:i] = a:val
+		return new_list
+	endif
+endfunction
+
+"borrar un valor de la lista o diccionario (p. ej :echo Pop([1, 2, 3, 4,], 3) = [1, 2, 3])
+function! Pop(l, i)
+	if type(a:l) == v:t_dict
+		let new_dict = deepcopy(a:l)
+		call remove(new_dict, a:i)
+		return new_dict
+	else
+		let new_list = deepcopy(a:l)
+		call remove(new_list, a:i)
+		return new_list
+	endif
+endfunction
+
+" utilizar una función con una lista o diccionario (p. ej. :echo Mapped(function("toupper"), mylist) = :let mylist = ['my', 'list'] ~ ['MY', 'LIST'] 
+function! Mapped(fn, l)
+	if type(a:l) == v:t_dict
+		let new_dict = deepcopy(a:l)
+		call map(new_dict, string(a:fn) . '(v:val)')
+		return new_dict
+	else
+		let new_list = deepcopy(a:l)
+		call map(new_list, string(a:fn) . '(v:val)')
+		return new_list
+endfunction
+
+" filtrar una lista para valores que son 'truthy'
+function! Filtered(fn, l)
+	if type(a:l) == v:t_dict
+		let new_dict = deepcopy(a:l)
+		call filter(new_dict, string(a:fn) . '(v:val)')
+		return new_dict
+	else
+		let new_list = deepcopy(a:l)
+		call filter(new_list, string(a:fn) . '(v:val)')
+		return new_list
+endfunction
+
+" filtrar una lista para valores que no son 'truthy'
+function! Removed(fn, l)
+	if type(a:l) == v:t_dict
+		let new_dict = deepcopy(a:l)
+		call filter(new_dict, '!' . string(a:fn) . '(v:val)')
+		return new_dict
+	else
+		let new_list = deepcopy(a:l)
+		call filter(new_list, '!' . string(a:fn) . '(v:val)')
+		return new_list
+endfunction
+
+" las funciones para llamar Reduced()
+function! Add(a, b)
+	return a:a + a:b
+endfunction
+
+function! Multiply(a, b)
+	return a:a * a:b
+endfunction
+
+" combinar una lista de números en un valor único
+function! Reduced(fn, l)
+	let [acc; tail] = a:l
+	while !empty(tail)
+		let [head; tail] = tail
+		let acc = a:fn(acc, head)
+	endwhile
+	return acc
+endfunction
+
+" }}}
+
+echo "WELCOME!  ¡BIENVENIDO!"
